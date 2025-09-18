@@ -399,30 +399,36 @@
     // --- Firebase Realtime Database Integration ---
     // Add your Firebase config below (replace the values with your own from Firebase Console)
   const firebaseConfig = {
-  apiKey: "AIzaSyDKqib4Ex-N9Xb1TCkDvQGPWjmTkE",
-  authDomain: "dialysis-375842.firebaseapp.com",
-  databaseURL: "https://dialysis-375842-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dialysis-375842",
-  storageBucket: "dialysis-375842.appspot.com",
-  messagingSenderId: "912046283806",
-  appId: "1:912046283806:web-ea85f8e6b90aa3d0aa3e17",
-  measurementId: "G-23W6JPS3J6"
+   apiKey: "AIzaSyDK8sHaDEAx_RNsQIQVHkTcDavW3PWmTKE",
+  authDomain: "dialysis-375b2.firebaseapp.com",
+  databaseURL: "https://dialysis-375b2-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dialysis-375b2",
+  storageBucket: "dialysis-375b2.firebasestorage.app",
+  messagingSenderId: "981648283830",
+  appId: "1:981648283830:web:e85a25feb8c9baad30ae17",
+  measurementId: "G-23JW98G1SP"
 };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Write hardcoded sensor data to Firebase (simulating IoT device)
-    db.ref('sensors/accelerometer').set({ x: 0.12, y: 0.05, z: 0.98 });
-    db.ref('sensors/gyroscope').set({ x: 0.01, y: 0.02, z: 0.03 });
-
-    // Read and display sensor data in dashboard
+    // Listen for real-time changes in accelerometer data
     db.ref('sensors/accelerometer').on('value', (snapshot) => {
       const val = snapshot.val();
-      document.getElementById('accelValue').textContent = `X: ${val.x}, Y: ${val.y}, Z: ${val.z}`;
+      if (val) {
+        document.getElementById('accelValue').textContent = `X: ${val.x}, Y: ${val.y}, Z: ${val.z}`;
+      } else {
+        document.getElementById('accelValue').textContent = 'No data';
+      }
     });
+
+    // Listen for real-time changes in gyroscope data
     db.ref('sensors/gyroscope').on('value', (snapshot) => {
       const val = snapshot.val();
-      document.getElementById('gyroValue').textContent = `X: ${val.x}, Y: ${val.y}, Z: ${val.z}`;
+      if (val) {
+        document.getElementById('gyroValue').textContent = `X: ${val.x}, Y: ${val.y}, Z: ${val.z}`;
+      } else {
+        document.getElementById('gyroValue').textContent = 'No data';
+      }
     });
     // Navigation logic
     const navLinks = document.querySelectorAll('.sidebar nav a');
