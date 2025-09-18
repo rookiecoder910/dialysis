@@ -1,0 +1,18 @@
+API Endpoints for SeismoDialysis Pro
+
+GET    /api                - Health check (returns { message: 'API is working' })
+GET    /api/patients       - Get all patients
+POST   /api/patients       - Add a new patient (JSON body)
+
+Example POST /api/patients body:
+{
+  "patientId": "P001",
+  "name": "John Doe",
+  "age": 45,
+  "medicalHistory": "Diabetes",
+  "emergencyContact": {
+    "name": "Jane Doe",
+    "phone": "1234567890",
+    "relationship": "Wife"
+  }
+}

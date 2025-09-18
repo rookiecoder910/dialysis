@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Firebase JS SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Patient Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    #searchInput {
+      height: 38px;
+      border: 1.5px solid #ab2187;
+      border-radius: 6px;
+      padding: 0 10px;
+      font-size: 1rem;
+      background: #fff;
+      color: #222;
+      margin-bottom: 2px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border 0.2s;
+    }
+    #searchInput:focus {
+      border-color: #ffd700;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #6a0572 0%, #ab2187 100%);
+      margin: 0;
+      color: #fff;
+    }
+    .dashboard {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 240px;
+      background: rgba(30, 0, 50, 0.95);
+      padding: 32px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 2px 0 16px rgba(0,0,0,0.08);
+    }
+    .sidebar .logo {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 32px;
+      letter-spacing: 1px;
+    }
+    .sidebar nav {
+      width: 100%;
+    }
+    .sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #fff;
+      text-decoration: none;
+      padding: 12px 32px;
+      font-size: 1.08rem;
+      border-radius: 8px 0 0 8px;
+      margin-bottom: 4px;
+      transition: background 0.2s;
+    }
+    .sidebar nav a.active, .sidebar nav a:hover {
+      background: linear-gradient(90deg, #bf56a3 0%, #171617 100%);
+      color: #ffd700;
+    }
+    .sidebar .profile {
+      margin-top: auto;
+      padding: 24px 0;
+      text-align: center;
+    }
+    .sidebar .profile img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      margin-bottom: 8px;
+      border: 2px solid #ffd700;
+    }
+    .sidebar .profile .name {
+      font-weight: 600;
+      color: #ffd700;
+      font-size: 1.05rem;
+    }
+    .main {
+      flex: 1;
+      padding: 40px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .topbar .greeting {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #ffd700;
+    }
+    .topbar .search {
+      background: #fff;
+      border-radius: 24px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      color: #333;
+      font-size: 1rem;
+      min-width: 220px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+    .card .icon {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      font-size: 1.5rem;
+      opacity: 0.3;
+    }
+    #patientsTable {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff2;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      font-size: 1.05rem;
+      overflow: hidden;
+      table-layout: fixed;
+    }
+    #patientsTable th, #patientsTable td {
+      padding: 0.7em 0.5em;
+      text-align: left;
+      background: #fff2;
+      color: #fff;
+      font-weight: 500;
+      border-bottom: 1px solid #fff3;
+      vertical-align: middle;
+      word-break: break-word;
+    }
+    #patientsTable td .action-btn {
+      background: #ffd700;
+      color: #ab2187;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin: 0 2px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #patientsTable td .action-btn:hover {
+      background: #fff;
+      color: #ab2187;
+    }
+    #patientForm input {
+      height: 38px;
+      border: 1.5px solid #ab2187;
+      border-radius: 6px;
+      padding: 0 10px;
+      font-size: 1rem;
+      background: #fff;
+      color: #222;
+      margin-bottom: 2px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border 0.2s;
+    }
+    #patientForm input:focus {
+      border-color: #ffd700;
+    }
+    #formFeedback {
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: none;
+    }
+    .feedback.success { background: #d4edda; color: #155724; }
+    .feedback.error { background: #f8d7da; color: #721c24; }
+    #patientsTable th {
+      background: #f8f8ff;
+      color: #4a69bd;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 600;
+    }
+    #patientsTable tr {
+      transition: background 0.2s;
+    }
+    #patientsTable tr.highlight-row {
+      background: #ffd70044 !important;
+    }
+  #patientsTable th:nth-child(1), #patientsTable td:nth-child(1) { width: 10%; }
+  #patientsTable th:nth-child(2), #patientsTable td:nth-child(2) { width: 16%; }
+  #patientsTable th:nth-child(3), #patientsTable td:nth-child(3) { width: 8%; text-align: center; }
+  #patientsTable th:nth-child(4), #patientsTable td:nth-child(4) { width: 16%; }
+  #patientsTable th:nth-child(5), #patientsTable td:nth-child(5) { width: 16%; }
+  #patientsTable th:nth-child(6), #patientsTable td:nth-child(6) { width: 17%; }
+  #patientsTable th:nth-child(7), #patientsTable td:nth-child(7) { width: 17%; }
+    
+    .appointments .appt-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .appointments .appt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .appointments .appt {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .appointments .appt img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid #ffd700;
+    }
+    .appointments .appt .info {
+      flex: 1;
+    }
+    .appointments .appt .name {
+      font-weight: 600;
+      color: #ffd700;
+      font-size: 1rem;
+    }
+    .appointments .appt .role {
+      font-size: 0.95rem;
+      color: #fff;
+    }
+    .appointments .appt .time {
+      font-size: 0.92rem;
+      color: #fff;
+    }
+    @media (max-width: 900px) {
+      .dashboard {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 16px 0;
+      }
+      .main {
+        padding: 24px 8px;
+      }
+      .charts-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="logo">HospiPro</div>
+      <nav>
+        <a href="#dashboard" class="active"><i class="fa fa-chart-pie"></i> Dashboard</a>
+        <a href="#doctors"><i class="fa fa-user-md"></i> Doctors</a>
+        <a href="#patients"><i class="fa fa-users"></i> Patients</a>
+        <a href="#appointments"><i class="fa fa-calendar-check"></i> Appointments</a>
+        <a href="#billing"><i class="fa fa-file-invoice-dollar"></i> Billing</a>
+        <a href="#departments"><i class="fa fa-building"></i> Departments</a>
+        <a href="#pharmacy"><i class="fa fa-pills"></i> Pharmacy</a>
+        <a href="#reports"><i class="fa fa-file-alt"></i> Reports</a>
+        <a href="#settings"><i class="fa fa-cog"></i> Settings</a>
+        <a href="#help"><i class="fa fa-question-circle"></i> Help & Support</a>
+      </nav>
+      <div class="profile">
+        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dr. Noran">
+        <div class="name">Dr. Noran</div>
+        <div style="color:#fff;font-size:0.95rem;">Admin</div>
+      </div>
+    </aside>
+    <main class="main">
+      <section id="section-dashboard">
+        <div class="topbar">
+          <div class="greeting">🩺 SeismoDialysis Dashboard <span style="color:#fff;font-size:1rem;">| Earthquake & Patient Safety</span></div>
+        </div>
+        <div class="cards">
+          <div class="card" style="background:linear-gradient(135deg,#e573c6 0%,#ab2187 100%);">
+            <span class="icon"><i class="fa fa-bolt"></i></span>
+            <div class="title">Earthquake Tremor</div>
+            <div class="value" id="tremorValue">0.0</div>
+            <div class="desc">Current Magnitude (Richter)</div>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#ffe066 0%,#ffd700 100%);color:#222;">
+            <span class="icon"><i class="fa fa-shield-alt"></i></span>
+            <div class="title">Dialyser Stabilization</div>
+            <div class="value" id="stabilizationStatus">Stable</div>
+            <div class="desc">System Status</div>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#6dd5ed 0%,#2193b0 100%);">
+            <span class="icon"><i class="fa fa-users"></i></span>
+            <div class="title">Patients</div>
+            <div class="value" id="patientCount">0</div>
+            <div class="desc">Total Registered</div>
+          </div>
+          <!-- Accelerometer Card -->
+          <div class="card" id="accelCard" style="background:linear-gradient(135deg,#f7b733 0%,#fc4a1a 100%);">
+            <span class="icon"><i class="fa fa-arrows-alt"></i></span>
+            <div class="title">Accelerometer</div>
+            <div class="value" id="accelValue">Loading...</div>
+            <div class="desc">Raw Data (g)</div>
+          </div>
+          <!-- Gyroscope Card -->
+          <div class="card" id="gyroCard" style="background:linear-gradient(135deg,#43cea2 0%,#185a9d 100%);">
+            <span class="icon"><i class="fa fa-sync-alt"></i></span>
+            <div class="title">Gyroscope</div>
+            <div class="value" id="gyroValue">Loading...</div>
+            <div class="desc">Raw Data (°/s)</div>
+          </div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-card">
+            <div style="font-weight:600;font-size:1.1rem;margin-bottom:8px;">Earthquake Tremor (Live)</div>
+            <canvas id="tremorChart" height="120"></canvas>
+          </div>
+          <div class="chart-card">
+            <div style="font-weight:600;font-size:1.1rem;margin-bottom:8px;">System Logs</div>
+            <div id="systemLogs" style="font-size:0.98rem;max-height:220px;overflow-y:auto;"></div>
+          </div>
+        </div>
+      </section>
+      <section id="section-doctors" style="display:none"><h2>Doctors</h2><div>Doctor management coming soon.</div></section>
+      <section id="section-patients" style="display:none">
+        <div class="chart-card" style="margin-top:24px;">
+          <div style="font-weight:600;font-size:1.1rem;margin-bottom:8px;">Patient Management</div>
+          <form id="patientForm" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+            <input type="text" name="patientId" placeholder="Patient ID" required />
+            <input type="text" name="name" placeholder="Name" required />
+            <input type="number" name="age" placeholder="Age" required min="0" />
+            <input type="text" name="medicalHistory" placeholder="Medical History" />
+            <input type="text" name="emergencyContactName" placeholder="Emergency Contact Name" />
+            <input type="text" name="emergencyContactPhone" placeholder="Emergency Contact Phone" />
+            <input type="text" name="emergencyContactRelationship" placeholder="Emergency Contact Relationship" />
+            <button type="submit" style="grid-column:span 2;background:#667eea;color:#fff;font-weight:600;padding:12px 0;border:none;border-radius:8px;font-size:1.1rem;box-shadow:0 2px 8px rgba(102,126,234,0.08);cursor:pointer;transition:background 0.2s;">Add Patient</button>
+          </form>
+          <div class="feedback" id="formFeedback"></div>
+          <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search patients..." style="width:100%;margin-bottom:8px;" />
+          </div>
+          <table id="patientsTable" style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f6f8fa;color:#667eea;font-weight:600;">
+                <th onclick="sortTable(0)" style="cursor:pointer;padding:12px 8px;">Patient ID &#x25B2;&#x25BC;</th>
+                <th onclick="sortTable(1)" style="cursor:pointer;padding:12px 8px;">Name &#x25B2;&#x25BC;</th>
+                <th onclick="sortTable(2)" style="cursor:pointer;padding:12px 8px;">Age &#x25B2;&#x25BC;</th>
+                <th onclick="sortTable(3)" style="cursor:pointer;padding:12px 8px;">Medical History &#x25B2;&#x25BC;</th>
+                <th onclick="sortTable(4)" style="cursor:pointer;padding:12px 8px;">Contact no.&#x25B2;&#x25BC;</th>
+                <th onclick="sortTable(5)" style="cursor:pointer;padding:12px 8px;">Relationship &#x25B2;&#x25BC;</th>
+                <th onclick="sortTable(6)" style="cursor:pointer;padding:12px 8px;">Emergency Contact Phone &#x25B2;&#x25BC;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+      <section id="section-appointments" style="display:none"><h2>Appointments</h2><div>Appointments management coming soon.</div></section>
+      <section id="section-billing" style="display:none"><h2>Billing</h2><div>Billing features coming soon.</div></section>
+      <section id="section-departments" style="display:none"><h2>Departments</h2><div>Department management coming soon.</div></section>
+      <section id="section-pharmacy" style="display:none"><h2>Pharmacy</h2><div>Pharmacy features coming soon.</div></section>
+      <section id="section-reports" style="display:none"><h2>Reports</h2><div>Reports and analytics coming soon.</div></section>
+      <section id="section-settings" style="display:none"><h2>Settings</h2><div>Settings and configuration coming soon.</div></section>
+      <section id="section-help" style="display:none"><h2>Help & Support</h2><div>Help and support resources coming soon.</div></section>
+    </main>
+  </div>
+  <script>
+    // --- Firebase Realtime Database Integration ---
+    // Add your Firebase config below (replace the values with your own from Firebase Console)
+  const firebaseConfig = {
+  apiKey: "AIzaSyDKqib4Ex-N9Xb1TCkDvQGPWjmTkE",
+  authDomain: "dialysis-375842.firebaseapp.com",
+  databaseURL: "https://dialysis-375842-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dialysis-375842",
+  storageBucket: "dialysis-375842.appspot.com",
+  messagingSenderId: "912046283806",
+  appId: "1:912046283806:web-ea85f8e6b90aa3d0aa3e17",
+  measurementId: "G-23W6JPS3J6"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Write hardcoded sensor data to Firebase (simulating IoT device)
+    db.ref('sensors/accelerometer').set({ x: 0.12, y: 0.05, z: 0.98 });
+    db.ref('sensors/gyroscope').set({ x: 0.01, y: 0.02, z: 0.03 });
+
+    // Read and display sensor data in dashboard
+    db.ref('sensors/accelerometer').on('value', (snapshot) => {
+      const val = snapshot.val();
+      document.getElementById('accelValue').textContent = `X: ${val.x}, Y: ${val.y}, Z: ${val.z}`;
+    });
+    db.ref('sensors/gyroscope').on('value', (snapshot) => {
+      const val = snapshot.val();
+      document.getElementById('gyroValue').textContent = `X: ${val.x}, Y: ${val.y}, Z: ${val.z}`;
+    });
+    // Navigation logic
+    const navLinks = document.querySelectorAll('.sidebar nav a');
+    const sections = [
+      'dashboard','doctors','patients','appointments','billing','departments','pharmacy','reports','settings','help'
+    ].map(s => document.getElementById('section-' + s));
+    navLinks.forEach((link, idx) => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        navLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        sections.forEach((sec, i) => sec.style.display = (i === idx ? '' : 'none'));
+      });
+    });
+    // Show dashboard by default
+    sections.forEach((sec, i) => sec.style.display = (i === 0 ? '' : 'none'));
+    // SeismoDialysis Dashboard JS
+    const API_BASE = 'http://localhost:3001';
+    let tremorData = Array(20).fill(0);
+    let logs = [];
+    let stabilization = 'Stable';
+    let patientsData = [];
+    let lastAddedId = null;
+    let sortDirection = [true, true, true, true, true];
+
+    // Simulate tremor data (replace with real IoT fetch if available)
+    function updateTremor() {
+      // Simulate random tremor
+      const tremor = (Math.random() * 2.5).toFixed(2);
+      tremorData.push(Number(tremor));
+      if (tremorData.length > 20) tremorData.shift();
+      document.getElementById('tremorValue').textContent = tremor;
+      // If tremor > 1.5, system goes to Emergency
+      if (tremor > 1.5) {
+        stabilization = 'Emergency Mode';
+        addLog(`Earthquake detected! Magnitude ${tremor}`);
+      } else {
+        stabilization = 'Stable';
+      }
+      document.getElementById('stabilizationStatus').textContent = stabilization;
+      renderTremorChart();
+    }
+
+    function renderTremorChart() {
+      const ctx = document.getElementById('tremorChart').getContext('2d');
+      if (window.tremorChartInstance) window.tremorChartInstance.destroy();
+      window.tremorChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array(tremorData.length).fill(''),
+          datasets: [{
+            label: 'Magnitude',
+            data: tremorData,
+            borderColor: '#ffd700',
+            backgroundColor: 'rgba(255,215,0,0.1)',
+            tension: 0.3,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: { color: '#fff', min: 0, max: 3 }
+          }
+        }
+      });
+    }
+
+    function addLog(msg) {
+      const time = new Date().toLocaleTimeString();
+      logs.unshift(`[${time}] ${msg}`);
+      if (logs.length > 10) logs.pop();
+      renderLogs();
+    }
+    function renderLogs() {
+      const logsDiv = document.getElementById('systemLogs');
+      logsDiv.innerHTML = logs.map(l => `<div>${l}</div>`).join('');
+    }
+
+    // Patient Management
+    async function fetchPatients(highlightId = null) {
+      const res = await fetch(`${API_BASE}/api/patients`);
+      patientsData = await res.json();
+      document.getElementById('patientCount').textContent = patientsData.length;
+      renderTable(highlightId);
+    }
+    function renderTable(highlightId = null) {
+      const tbody = document.querySelector('#patientsTable tbody');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      tbody.innerHTML = '';
+      patientsData.filter(p => {
+        return (
+          p.patientId.toLowerCase().includes(search) ||
+          p.name.toLowerCase().includes(search) ||
+          (p.medicalHistory || '').toLowerCase().includes(search) ||
+          (p.emergencyContact?.name || '').toLowerCase().includes(search) ||
+          (p.emergencyContact?.relationship || '').toLowerCase().includes(search) ||
+          (p.emergencyContact?.phone || '').toLowerCase().includes(search)
+        );
+      }).forEach(p => {
+        const tr = document.createElement('tr');
+        if (highlightId && p.patientId === highlightId) tr.classList.add('highlight-row');
+        tr.innerHTML = `
+          <td>${p.patientId}</td>
+          <td>${p.name}</td>
+          <td>${p.age}</td>
+          <td>${p.medicalHistory || ''}</td>
+          <td>${p.emergencyContact?.name || ''}</td>
+          <td>${p.emergencyContact?.relationship || ''}</td>
+          <td>${p.emergencyContact?.phone || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    // Edit patient logic
+    window.editPatient = function(idx) {
+      const p = patientsData[idx];
+      const form = document.getElementById('patientForm');
+      form.patientId.value = p.patientId;
+      form.name.value = p.name;
+      form.age.value = p.age;
+      form.medicalHistory.value = p.medicalHistory || '';
+      form.emergencyContactName.value = p.emergencyContact?.name || '';
+      form.emergencyContactPhone.value = p.emergencyContact?.phone || '';
+      form.emergencyContactRelationship.value = p.emergencyContact?.relationship || '';
+      form.dataset.editIdx = idx;
+      showFeedback('Editing patient. Update details and click Add Patient to save.', 'success');
+    }
+    // Delete patient logic
+    window.deletePatient = function(idx) {
+      if (!confirm('Are you sure you want to delete this patient?')) return;
+      const patientId = patientsData[idx].patientId;
+      fetch(`${API_BASE}/api/patients/${patientId}`, { method: 'DELETE' })
+        .then(res => {
+          if (res.ok) {
+            showFeedback('Patient deleted successfully!', 'success');
+            fetchPatients();
+          } else {
+            showFeedback('Failed to delete patient.', 'error');
+          }
+        });
+    }
+    document.getElementById('searchInput').addEventListener('input', () => renderTable());
+    document.getElementById('patientForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      // Improved validation
+      if (!form.patientId.value.trim() || !form.name.value.trim() || !form.age.value.trim() ||
+          !form.emergencyContactName.value.trim() || !form.emergencyContactPhone.value.trim() || !form.emergencyContactRelationship.value.trim()) {
+        showFeedback('Please fill all required fields.', 'error');
+        return;
+      }
+      if (isNaN(form.age.value) || form.age.value <= 0) {
+        showFeedback('Age must be a positive number.', 'error');
+        return;
+      }
+      if (!/^\d{10}$/.test(form.emergencyContactPhone.value.trim())) {
+        showFeedback('Emergency Contact Phone must be a 10-digit number.', 'error');
+        return;
+      }
+      const data = {
+        patientId: form.patientId.value.trim(),
+        name: form.name.value.trim(),
+        age: form.age.value,
+        medicalHistory: form.medicalHistory.value,
+        emergencyContact: {
+          name: form.emergencyContactName.value,
+          phone: form.emergencyContactPhone.value,
+          relationship: form.emergencyContactRelationship.value
+        }
+      };
+      // If editing, send PUT request
+      if (form.dataset.editIdx !== undefined) {
+        const idx = form.dataset.editIdx;
+        const patientId = patientsData[idx]?.patientId;
+        const res = await fetch(`${API_BASE}/api/patients/${patientId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          form.reset();
+          showFeedback('Patient updated successfully!', 'success');
+          delete form.dataset.editIdx;
+          fetchPatients(data.patientId);
+        } else {
+          const err = await res.json();
+          showFeedback('Failed to update patient: ' + (err.details || 'Unknown error'), 'error');
+        }
+      } else {
+        // Add new patient
+        const res = await fetch(`${API_BASE}/api/patients`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          form.reset();
+          showFeedback('Patient added successfully!', 'success');
+          lastAddedId = data.patientId;
+          fetchPatients(lastAddedId);
+        } else {
+          const err = await res.json();
+          showFeedback('Failed to add patient: ' + (err.details || 'Unknown error'), 'error');
+        }
+      }
+    };
+    function showFeedback(msg, type) {
+      const fb = document.getElementById('formFeedback');
+      fb.textContent = msg;
+      fb.className = 'feedback ' + type;
+      fb.style.display = 'block';
+      setTimeout(() => { fb.style.display = 'none'; }, 3000);
+    }
+    function sortTable(colIdx) {
+      sortDirection[colIdx] = !sortDirection[colIdx];
+      patientsData.sort((a, b) => {
+        let v1, v2;
+        switch(colIdx) {
+          case 0: v1 = a.patientId; v2 = b.patientId; break;
+          case 1: v1 = a.name; v2 = b.name; break;
+          case 2: v1 = a.age; v2 = b.age; break;
+          case 3: v1 = a.medicalHistory || ''; v2 = b.medicalHistory || ''; break;
+          case 4: v1 = a.emergencyContact?.name || ''; v2 = b.emergencyContact?.name || ''; break;
+          case 5: v1 = a.emergencyContact?.relationship || ''; v2 = b.emergencyContact?.relationship || ''; break;
+          case 6: v1 = a.emergencyContact?.phone || ''; v2 = b.emergencyContact?.phone || ''; break;
+        }
+        if (typeof v1 === 'number' && typeof v2 === 'number') {
+          return sortDirection[colIdx] ? v1 - v2 : v2 - v1;
+        }
+        return sortDirection[colIdx] ? v1.localeCompare(v2) : v2.localeCompare(v1);
+      });
+      renderTable();
+    }
+
+    // Initial load
+    fetchPatients();
+    setInterval(updateTremor, 2000);
+    addLog('System initialized successfully');
+  </script>
+</body>
+</html>
